@@ -440,6 +440,11 @@ class KazamApp(GObject.GObject):
         if self.area_window:
             logger.debug("Area mode clicked.")
             self.area_window.window.show_all()
+            self.area_window.window.fullscreen()
+            self.area_window.window.unfullscreen()
+            self.area_window.window.move(HW.screens[self.area_window.curr_screen]['x'],
+                             HW.screens[self.area_window.curr_screen]['y'])
+            self.area_window.window.fullscreen()
             self.window.set_sensitive(False)
 
     def cb_record_window_clicked(self, widget):
@@ -449,20 +454,37 @@ class KazamApp(GObject.GObject):
             self.window.set_sensitive(False)
 
     def cb_area_selected(self, widget):
-        logger.debug("Area selected: SX: {0}, SY: {1}, EX: {2}, EY: {3}".format(
+        logger.debug("Area selected: SX: {0}, SY: {1}, EX: {2}, EY: {3}, XX: {4}".format(
             self.area_window.startx,
             self.area_window.starty,
             self.area_window.endx,
-            self.area_window.endy))
+            self.area_window.endy,
+            HW.screens[self.area_window.curr_screen]['x']))
+
+        start_x = self.area_window.g_startx
+        start_y = self.area_window.g_starty
+        end_x = self.area_window.g_endx
+        end_y = self.area_window.g_endy
+
+        if self.main_mode == MODE_SCREENSHOT:
+            if start_x < HW.screens[self.area_window.curr_screen]['x']:
+                start_x = start_x + HW.screens[self.area_window.curr_screen]['x']
+                end_x = end_x + HW.screens[self.area_window.curr_screen]['x']
+            if start_x > (HW.screens[self.area_window.curr_screen]['x'] + HW.screens[self.area_window.curr_screen]['width']):
+                start_x = start_x - HW.screens[self.area_window.curr_screen]['width']
+                end_x = end_x - HW.screens[self.area_window.curr_screen]['width']
+
+            if start_y < HW.screens[self.area_window.curr_screen]['y']:
+                start_y = start_y + HW.screens[self.area_window.curr_screen]['y']
+                end_y = end_y + HW.screens[self.area_window.curr_screen]['y']
+            if start_y > (HW.screens[self.area_window.curr_screen]['y'] + HW.screens[self.area_window.curr_screen]['width']):
+                start_y = start_y - HW.screens[self.area_window.curr_screen]['width']
+                end_y = end_y - HW.screens[self.area_window.curr_screen]['width']
+
         logger.debug("Area selected: GX: {0}, GY: {1}, GX: {2}, GY: {3}".format(
-            self.area_window.g_startx,
-            self.area_window.g_starty,
-            self.area_window.g_endx,
-            self.area_window.g_endy))
-        prefs.area = (self.area_window.g_startx,
-                      self.area_window.g_starty,
-                      self.area_window.g_endx,
-                      self.area_window.g_endy,
+            start_x, start_y, end_x, end_y))
+
+        prefs.area = (start_x, start_y, end_x, end_y,
                       self.area_window.width,
                       self.area_window.height)
         self.window.set_sensitive(True)
@@ -792,6 +814,8 @@ class KazamApp(GObject.GObject):
             self.recorder.connect("flush-done", self.cb_flush_done)
 
         elif self.main_mode == MODE_SCREENSHOT:
+            if self.record_mode == MODE_AREA:
+                video_source = HW.combined_screen
             self.grabber = Grabber()
             self.grabber.setup_sources(video_source,
                                        prefs.area if self.record_mode == MODE_AREA else None,

@@ -66,6 +66,7 @@ class AreaWindow(GObject.GObject):
         self.g_endy = 0
         self.height = 0
         self.width = 0
+        self.curr_screen = 0
 
         self.window = Gtk.Window()
         self.box = Gtk.Box()
@@ -107,10 +108,7 @@ class AreaWindow(GObject.GObject):
             self.compositing = False
 
         (scr, x, y) = self.pntr_device.get_position()
-        cur = scr.get_monitor_at_point(x, y)
-        self.window.move(HW.screens[cur]['x'],
-                         HW.screens[cur]['y'])
-        self.window.fullscreen()
+        self.curr_screen = scr.get_monitor_at_point(x, y)
 
         crosshair_cursor = Gdk.Cursor(Gdk.CursorType.CROSSHAIR)
         self.last_cursor = Gdk.Cursor(Gdk.CursorType.LEFT_PTR)
@@ -298,12 +296,12 @@ class AreaWindow(GObject.GObject):
     def cb_leave_notify_event(self, widget, event):
         (scr, x, y) = self.pntr_device.get_position()
         if x > 0 or y > 0:
-            cur = scr.get_monitor_at_point(x, y)
+            self.curr_screen = scr.get_monitor_at_point(x, y)
             self.window.unfullscreen()
-            self.window.move(HW.screens[cur]['x'],
-                             HW.screens[cur]['y'])
+            self.window.move(HW.screens[self.curr_screen]['x'],
+                             HW.screens[self.curr_screen]['y'])
             self.window.fullscreen()
-            logger.debug("Move to X: {0} Y: {1}".format(HW.screens[cur]['x'], HW.screens[cur]['y']))
+            logger.debug("Move to X: {0} Y: {1}".format(HW.screens[self.curr_screen]['x'], HW.screens[self.curr_screen]['y']))
         return True
 
     def cb_keypress_event(self, widget, event):
